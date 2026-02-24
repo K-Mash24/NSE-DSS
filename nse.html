@@ -269,7 +269,42 @@
         .stock-chip .chg {
             font-family: 'Space Mono', monospace;
             font-size: 10px;
-        }      
+        }
+        
+        /* CTA */
+        .analyze-btn {
+            background: var(--green);
+            color: #000000;
+            font-family: 'Bebas Neue';
+            font-size: 18px;
+            letter-spacing: 3px;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: block;
+            margin: 0 auto 40px;
+            box-shadow: 0 4px 20px rgba(0,201,110,0.3);
+        }
+
+        .analyze-btn:hover {
+            transform: translate(-2px);
+            box-shadow: 0 8px 30px rgba(0,201,110,0.5);
+        }
+
+        /* Results */
+        #results {display: none;}
+
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
     </style>
 </head>
 <body>
@@ -404,8 +439,192 @@
         }).join('');
     }
 
-    
+    function selectStock(i) {
+        selectedStock = i;
+        document.querySelectorAll(`.stock-chip`).forEach((el, idx) => {
+            el.classList.toggle('selected', idx === i);
+        });
+    }
 
+    function analyze () {
+        const capital = parseFloat(document,getElementById('capital').value);
+        const horizon = document.getElementById('horizon').value;
+        const risk = document.getElementById('risk').value;
+        const goal = document.getElementById('goal').value;
+        
+        if (!capital || !horizon || !risk || !goal) {
+            alert('Please fill in all profile fields.');
+            return;
+        }
+        if (selectedStock === null) {
+            alert('Please select a stock to evaluate.');
+            return;
+        }
+
+        const s = stocks[selectedStock];
+
+        // --- Scoring Logic ---
+        let score = 0;
+        const factors = { positive: [], negative: [], neutral: [] };
+        
+        // Shares affordable
+        const shares = Math.floor(capital / s.price);
+        const investable = shares * s.price;
+
+        // 1. Dividend check
+        if (goal === 'income' || goal === 'both') {
+          if (s.div >= 5) { score += 20; factors.positive.push(`High Dividend: ${s.div}%`); }
+          else if (s.div >= 2) { score += 10; factors.neutral.push(`Moderate Dividend: ${s.div}%`); }
+          else { score -= 10; factors.negative.push(`Low/No Dividend: ${s.div}%`); }
+        } else {
+          score += 10; // growth investor, dividends less critical
+          factors.neutral.push(`Dividend Yield: ${s.div}%`);
+    }
+
+    // 2. Valuation (P/E)
+    if (s.pe < 10) { score += 20; factors.positive.push(`Undervalued P/E: ${s.pe}x`); }
+    else if (s.pe <= 18) { score += 10; factors.neutral.push(`Fair P/E: ${s.pe}x`); }
+    else { score -= 5; factors.negative.push(`High P/E: ${s.pe}x`); }
+
+    // 3. Risk vs Beta
+    if (risk === 'low' && s.beta > 1.2) { score -= 20; factors.negative.push(`High Volatility (β=${s.beta}) vs low risk profile`); }
+    else if (risk === 'low' && s.beta <= 0.8) { score += 15; factors.positive.push(`Low Volatility β=${s.beta}`); }
+    else if (risk === 'high' && s.beta >= 1.2) { score += 15; factors.positive.push(`High Beta for Growth β=${s.beta}`); }
+    else { score += 8; factors.neutral.push(`Moderate Volatility β=${s.beta}`); }
+
+    // 4. Momentum
+    if (s.momentum === 'strong') { score += 15; factors.positive.push('Strong Price Momentum'); }
+    else if (s.momentum === 'neutral') { score += 5; factors.neutral.push('Neutral Momentum'); }
+    else { score -= 10; factors.negative.push('Weak/Declining Momentum'); }
+
+    // 5. Debt
+    if (s.debt === 'low') { score += 15; factors.positive.push('Low Debt Levels'); }
+    else if (s.debt === 'medium') { score += 5; factors.neutral.push('Moderate Debt'); }
+    else { score -= 15; factors.negative.push('High Debt — Elevated Risk'); }
+
+    // 6. Capital fit
+    if (shares === 0) { score -= 30; factors.negative.push('Insufficient capital for minimum lot'); }
+    else if (investable < capital * 0.5) { factors.neutral.push('Partial capital deployment'); }
+    else { score += 10; factors.positive.push('Capital fully deployable'); }
+
+    // 7. Horizon fit
+    if (horizon === 'short' && s.momentum === 'strong') { score += 10; factors.positive.push('Short-term momentum aligned'); }
+    if (horizon === 'long' && s.mktcap === 'Large') { score += 10; factors.positive.push('Large-cap stability for long-term'); }
+    if (horizon === 'short' && s.beta > 1.3) { score -= 10; factors.negative.push('High volatility risky for short horizon'); }
+
+    score = Math.max(0, Math.min(100, score));
+
+    // Decision
+    let decision, decClass, icon, advice;
+    if (score >= 65) {
+      decision = 'CONSIDER BUYING';
+      decClass = 'buy';
+      icon = '📈';
+      advice = `Based on your profile, ${s.name} (${s.sym}) scores well against your goals. 
+      With KES ${capital.toLocaleString()} you can acquire approximately ${shares} shares (KES ${investable.toLocaleString()} invested). 
+      The stock's fundamentals align with your ${risk} risk tolerance and ${horizon}-term horizon. 
+      Monitor your entry point carefully and consider averaging in over time rather than investing all at once.`;
+    } else if (score >= 40) {
+      decision = 'HOLD / WATCH';
+      decClass = 'hold';
+      icon = '👁';
+      advice = `${s.name} (${s.sym}) presents a mixed picture for your profile. There are both opportunities and risks that don't perfectly align. 
+      Consider placing this stock on your watchlist and waiting for a better entry point or improved fundamentals. 
+      If you do invest, limit your exposure to no more than 20% of your available capital (KES ${(capital * 0.2).toLocaleString()}).`;
+    } else {
+      decision = 'AVOID / RISKY';
+      decClass = 'avoid';
+      icon = '⚠️';
+      advice = `${s.name} (${s.sym}) does not align well with your current investment profile. 
+      The combination of your goals, risk tolerance, and this stock's characteristics raises several red flags. 
+      Consider looking at other NSE-listed stocks that better match your ${risk} risk profile and ${horizon}-term investment horizon.`;
+    }
+    
+    // Sub scores for breakdown
+    const subScores = [
+      { label: 'Valuation', pct: s.pe < 10 ? 90 : s.pe < 18 ? 60 : 30, color: '#00c96e' },
+      { label: 'Dividend Fit', pct: s.div >= 5 ? 85 : s.div >= 2 ? 55 : 25, color: '#00ffaa' },
+      { label: 'Risk Match', pct: (risk === 'low' && s.beta <= 1) || (risk === 'high' && s.beta >= 1.2) ? 85 : 50, color: '#f0c040' },
+      { label: 'Momentum', pct: s.momentum === 'strong' ? 90 : s.momentum === 'neutral' ? 55 : 25, color: '#00c96e' },
+      { label: 'Balance Sheet', pct: s.debt === 'low' ? 90 : s.debt === 'medium' ? 60 : 25, color: '#f0c040' },
+    ];
+
+    // Render
+    document.getElementById('metricsGrid').innerHTML = `
+      <div class="metric-card fade-in">
+        <div class="metric-label">DSS Score</div>
+        <div class="metric-value ${score >= 65 ? '' : score >= 40 ? 'warn' : 'danger'}">${score}/100</div>
+        <div class="metric-sub">Composite recommendation score</div>
+      </div>
+      <div class="metric-card fade-in">
+        <div class="metric-label">Shares Affordable</div>
+        <div class="metric-value">${shares.toLocaleString()}</div>
+        <div class="metric-sub">At KES ${s.price.toFixed(2)} per share</div>
+      </div>
+      <div class="metric-card fade-in">
+        <div class="metric-label">Capital Deployed</div>
+        <div class="metric-value">KES ${(investable/1000).toFixed(1)}K</div>
+        <div class="metric-sub">${capital > 0 ? ((investable/capital)*100).toFixed(0) : 0}% of available capital</div>
+      </div>
+      <div class="metric-card fade-in ${s.div < 2 ? 'warn' : ''}">
+        <div class="metric-label">Annual Dividend Est.</div>
+        <div class="metric-value ${s.div < 2 ? 'warn' : ''}">KES ${(shares * s.price * s.div / 100).toFixed(0)}</div>
+        <div class="metric-sub">${s.div}% yield on ${shares} shares</div>
+      </div>
+      <div class="metric-card fade-in">
+         <div class="metric-label">P/E Ratio</div>
+         <div class="metric-value">${s.pe}x</div>
+         <div class="metric-sub">NSE sector avg ~12x</div>
+      </div>
+      <div class="metric-card fade-in ${s.beta > 1.3 ? 'danger' : s.beta > 1 ? 'warn' : ''}">
+          <div class="metric-label">Beta (Volatility)</div>
+          <div class="metric-value ${s.beta > 1.3 ? 'danger' : s.beta > 1 ? 'warn' : ''}">${s.beta}</div>
+          <div class="metric-sub">${s.beta < 1 ? 'Less volatile than market' : 'More volatile than market'}</div>
+      </div>
+    `;
+
+    document.getElementById('recommendationBox').innerHTML = `
+      <div class="recommendation ${decClass} fade-in">
+        <div class="rec-header">
+            <div class="rec-icon">${icon}</div>
+            <div>
+                <div class="rec-title">${decision}</div>
+                <div style="font-size:12px;color:var(--text-dim);font-family:'Space Mono',monospace;letter-spacing:1px">${s.sym} · ${s.sector} · ${s.mktcap}-Cap</div>
+            </div>
+        </div>
+        <div class="rec-body">${advice}</div>
+      </div>
+  `;
+
+  document.getElementById('scoreBreakdown').innerHTML = subScores.map(sub => `
+    <div>
+      <div class="score-label"><span>${sub.label}</span><span>${sub.pct}%</span></div>
+      <div class="score-bar-bg">
+        <div class="score-bar-fill" style="width:0%;background:${sub.color}" data-w="${sub.pct}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('factorTags').innerHTML = [
+    ...factors.positive.map(f => `<span class="factor-tag positive">✓ ${f}</span>`),
+    ...factors.neutral.map(f => `<span class="factor-tag neutral">~ ${f}</span>`),
+    ...factors.negative.map(f => `<span class="factor-tag negative">✗ ${f}</span>`),
+  ].join('');
+
+  const results = document.getElementById('results');
+  results.style.display = 'block';
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Animate bars
+  setTimeout(() => {
+    document.querySelectorAll('.score-bar-fill').forEach(el => {
+      el.style.width = el.dataset.w + '%';
+    });
+  }, 100);
+}
+
+renderTicker();
+renderPicker();
     </script>
 </body>
 <
