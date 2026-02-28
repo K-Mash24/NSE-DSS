@@ -75,7 +75,8 @@ No external libraries, no backend, no database. All stock data is hardcoded in J
 | BAT | BAT Kenya | Consumer |
 | NMG | Nation Media Group | Media |
 | COOP | Co-operative Bank | Banking |
-| KPLC | Kenya Power | Utilities |
+| KPLC | Kenya Power & Lighting Company | Energy |
+| 
 
 ---
 
