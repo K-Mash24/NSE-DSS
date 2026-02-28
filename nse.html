@@ -125,14 +125,14 @@
 
         .ticker{
             display: flex;
-            gap: 40px;
-            animation: tickerScroll 20s linear infinite;
+            gap: 48px;
+            animation: scroll 30s linear infinite;
             white-space: nowrap;
         }
 
         @keyframes scroll {
-            from { transform: translateX(100%); }
-            to { transform: translateX(-100%); }
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
         }
 
         .ticker-item{
@@ -150,9 +150,9 @@
 
         /* Section titles */
         .section-title{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: helvetica;
             font-size: 20px;
-            letter-spacing: 2px;
+            letter-spacing: 0.5px;
             color: var(--gold);
             margin-bottom: 20px;
             display: flex;
@@ -170,8 +170,8 @@
         /* Input grid */
         .input-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minimax(220px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
             margin-bottom: 32px;
         }
 
@@ -183,7 +183,7 @@
 
         label {
             font-size: 11px;
-            letter-spacing: 1.5px;
+            letter-spacing: 0.8px;
             text-transform: uppercase;
             color: var(--text-dim);
             font-family: Verdana, Geneva, Tahoma, sans-serif;
@@ -609,7 +609,7 @@
     }
 
     function analyze () {
-        const capital = parseFloat(document,getElementById('capital').value);
+        const capital = parseFloat(document.getElementById('capital').value);
         const horizon = document.getElementById('horizon').value;
         const risk = document.getElementById('risk').value;
         const goal = document.getElementById('goal').value;
@@ -634,19 +634,19 @@
         const investable = shares * s.price;
 
         // 1. Dividend check
-        if (goal === 'income' || goal `both`) {
-            if (s.div >= 5) { score += 20; factors.positive.push('High Dividedn: ${s.div}%'); }
-            else if (s.div >= 2) { score += 10; factors.neutral.push('Moderate Dividend: ${s.div}%'); }
-            else { score -= 10; factors.negative.push('Low/No Dividend: ${s.div}%'); }
+        if (goal === 'income' || goal === `both`) {
+            if (s.div >= 5) { score += 20; factors.positive.push(`High Dividedn: ${s.div}%`); }
+            else if (s.div >= 2) { score += 10; factors.neutral.push(`Moderate Dividend: ${s.div}%`); }
+            else { score -= 10; factors.negative.push(`Low/No Dividend: ${s.div}%`); }
         }   else {
             score += 10; // growth investor, dividendd less critical
-            factors.neutral.push('Dividend Yiels: ${s.div}%');
+            factors.neutral.push(`Dividend Yield: ${s.div}%`);
         }
 
         // 2. Valuation (P/E)
-        if (s.pe < 10) {score += 20; facots.positive.push('Undervalued P/E: $(s.pe)x'); }
-        else if (s.pe <= 18) { score += 10; factors.neutral.push('Fair P/E: ${S.pe}x'); }
-        else { score -= 5; factors.negative.push('High P/E: ${s.pe}x'); }
+        if (s.pe < 10) {score += 20; factors.positive.push(`Undervalued P/E: ${s.pe}x`); }
+        else if (s.pe <= 18) { score += 10; factors.neutral.push(`Fair P/E: ${s.pe}x`); }
+        else { score -= 5; factors.negative.push(`High P/E: ${s.pe}x`); }
 
         // 3. Risk vs Beta
         if (risk === 'low' && s.beta > 1.2) { score -= 20; factors.negative.push('High Volatility (β=${s.beta}) vs low risk profile'); }
@@ -654,13 +654,13 @@
         else { score += 8; factors.neutral.push(`Moderate Volatility β=${s.beta}`); } 
 
         // 4. Momentum
-        if (s.momentum === 'Strong') { score += 15; factors.positive.push('Strong Price Momentum'); }
-        else if (s.momentum === 'Weak') { score -= 5; factors.negative.push('Neutral Momentum'); }
+        if (s.momentum === 'strong') { score += 15; factors.positive.push('Strong Price Momentum'); }
+        else if (s.momentum === 'weak') { score -= 5; factors.negative.push('Neutral Momentum'); }
         else { score += 10; factors.neutral.push('Weak/Declining Momentum'); }
 
         // 5. Debt
         if (s.debt === 'low') { score += 15; factors.positive.push('Low Debt Levels'); }
-        else if (s.debt === 'high') { score -= 5; factors.negative.push('Moderate Debt'); }
+        else if (s.debt === 'medium') { score -= 5; factors.negative.push('Moderate Debt'); }
         else { factors.neutral.push('High Debt - Elevated Risk'); }
 
         // 6. Capital fit
@@ -670,7 +670,7 @@
 
         // 7. Horizon Fit
         if (horizon === 'short' && s.momentum === 'strong') { score += 10; factors.positive.push('Short-term momentum aligned'); }
-        if (horizon === 'long' && s.mktcap === 'Large') { score -= 10; factors.negative.push('Large-cap stability for long-term'); }
+        if (horizon === 'long' && s.mktcap === 'Large') { score += 10; factors.positive.push('Large-cap stability for long-term'); }
         if (horizon === 'short' && s.beta > 1.3) { score -= 10; factors.negative.push('High Volatility, risky for short term horizon'); }
 
         score = Math.max(0, Math.min(100, score)); // Clamp score between 0-100
@@ -757,10 +757,10 @@
             </div>
         `;
 
-        document.getElementById('scoreBreakdown').innerHTML = subScores.map(s => `
+        document.getElementById('scoreBreakdown').innerHTML = subScores.map(sub => `
             <div>
-                <div class="score-label"><span>${s.label}</span><span>${s.pct}%</span></div>
-                <div class="Score-bar-bg">
+                <div class="score-label"><span>${sub.label}</span><span>${sub.pct}%</span></div>
+                <div class="score-bar-bg">
                     <div class="score-bar-fill" style="width: 0%; background: ${sub.color}" data-w="${sub.pct}"></div>
                 </div>
             </div>
