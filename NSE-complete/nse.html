@@ -299,6 +299,13 @@
         /* Results */
         #results {display: none;}
 
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
         .metric-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -619,7 +626,7 @@
         });
     }
 
-    function analyze () {
+    async function analyze () {
         const capital = parseFloat(document.getElementById('capital').value);
         const horizon = document.getElementById('horizon').value;
         const risk = document.getElementById('risk').value;
@@ -788,11 +795,40 @@
         results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         // Animate Bars
+        // Animate Bars
         setTimeout(() => {
             document.querySelectorAll('.score-bar-fill').forEach(el => {
                 el.style.width = el.dataset.w + '%';
             });
         }, 100);
+
+        // ML Prediction
+        try {
+            const mlRes = await fetch('http://127.0.0.1:5000/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pe: s.pe,
+                    div: s.div,
+                    beta: s.beta,
+                    chg: s.chg,
+                    momentum: s.momentum,
+                    debt: s.debt,
+                    mktcap: s.mktcap
+                })
+            });
+            const mlData = await mlRes.json();
+            const mlColor = mlData.prediction === 'Buy' ? '#00c96e' : mlData.prediction === 'Hold' ? '#f0c040' : '#ff4d6d';
+            document.getElementById('metricsGrid').innerHTML += `
+                <div class="metric-card fade-in">
+                    <div class="metric-label">ML Prediction</div>
+                    <div class="metric-value" style="color: ${mlColor}">${mlData.prediction}</div>
+                    <div class="metric-sub">Model confidence: ${mlData.confidence}%</div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('ML prediction failed:', error);
+        }
     }
 
 loadStocks();
