@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSE Student DSS - Nairobi Stock Exchange Decision Support</title>
+    <style>
+        :root{
+            --bg: #000000;
+            --surface: #0b1a13;
+            --surface2: #0f2119;
+            --border: #1a3828;
+            --green: #00c96e;
+            --green-dim: #007a42;
+            --gold: #f0c040;
+            --red: #ff4d6d;
+            --text: #d4e8dc;
+            --text-dim: #5e8c72;
+            --accent: #00ffaa;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0;}
+            
+        body{
+            background: var(--bg);
+            color: var(--text);
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }     
+
+        /* Background grid */
+        body::before{
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                linear-gradient(#00c96e08 1px, transparent 1px),
+                linear-gradient(90deg, #00c96e08 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrapper{
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+        }
+
+        /* Header */
+        header{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 28px 0 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 36px;
+        }
+
+        .logo-area{
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-badge{
+            width: 50px;
+            height: 50px;
+            background: var(--green);
+            border-radius: 100px;
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: large;
+            color: var(--bg);
+            letter-spacing: normal;
+        }
+
+        .logo-text p{
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .live-badge{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            color: var(--green);
+            padding: 6px 14px;
+            border: 1px solid var(--green-dim);
+            border-radius: 20px;
+            background: #00c96e0d;            
+        }
+
+        .live-dot{
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Ticker bar */
+        .ticker-wrap{
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 0;
+            margin-bottom: 40px;
+        }
+
+        .ticker{
+            display: flex;
+            gap: 48px;
+            animation: scroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        @keyframes scroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        .ticker-item{
+            display: flex;
+            gap: 6px;
+            align-items: center;            
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 14px;
+        }
+
+        .ticker-name{color: var(--text-dim);}
+        .ticker-price{color: var(--text); font-weight: bold;}
+        .ticker-change.up {color: var(--green);}
+        .ticker-change.down {color: var(--red);}
+
+        /* Section titles */
+        .section-title{
+            font-family: helvetica;
+            font-size: 20px;
+            letter-spacing: 0.5px;
+            color: var(--gold);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Input grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 11px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+        }
+
+        input, select {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            padding: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+            width: 100%;
+            appearance: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(0,201,110,0.1)
+        }
+
+        input:placeholder {color: var(--text-dim);}
+
+        select option {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        /* Stock Picker */
+        .stock-picker {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stock-chip {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 7px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .stock-chip:hover {
+            border-color: var(--green-dim);
+            background: var(--surface)
+        }
+
+        .stock-chip.selected {
+            color: var(--bg);
+            border-color: var(--green);
+            box-shadow: 0 0 12px var(--green);
+        }
+
+        .stock-chip .sym{
+            font-family: 'times new roman', serif;
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 1.2px;
+            color: var(--accent);
+        }
+
+        .stock-chip .name{
+            font-size: 12px;
+            color: var(--text-dim);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 2px;
+        }
+
+        .stock-chip .price {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text);
+        }
+
+        .stock-chip .chg {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px;
+            margin-top: 1px;
+        }
+        
+        /* CTA */
+        .analyze-btn {
+            background: var(--green);
+            color: #050d0a;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: block;
+            margin: 0 auto 40px;
+            box-shadow: 0 4px 20px rgba(0,201,110,0.3);
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,201,110,0.5);
+        }
+
+        /* Results */
+        #results {display: none;}
+
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--green);
+        }
+
+        .metric-card.warn::before {background: var(--gold)}
+        .metric-card.danger::before {background: var(--red)}
+
+        .metric-label {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-family: 'Space Mono', monospace;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-family: 'Bebas Neue';
+            font-size: 32px;
+            letter-spacing: 1px;
+            line-height: 1;
+            color: var(--accent);
+        }
+
+        .metric-value.warn {color: var(--gold); }
+        .metric-value.danger {color: var(--red);}
+
+        .metric-sub {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        /* Recommendation Box */
+        .recommendation {
+            border-radius: 14px;
+            padding: 28px;
+            border: 1px solid;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .recommendation.buy{
+            background: #00c96e0f;
+            background-color: var(--green-dim);
+        }
+
+        .recommendation.hold{
+            background: rgba(240,192,64,0.06);
+            border-color: var(--gold);
+        }
+
+        .recommendation.avoid{
+            background: rgba(255,77,109,0.06);
+            border-color: var(--red);
+        }
+
+        .rec-header{
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .rec-icon {
+            font-size: 40px;
+            line-height: 1;
+        }
+
+        .rec-title {
+            font-family: 'Bebas Neue';
+            font-size: 36px;
+            letter-spacing: 3px;
+        }
+
+        .recommendation.buy .rec-title {color: var(--text);}
+        .recommendation.hold .rec-title {color: var(--gold);}
+        .recommendation.avoid .rec-title {color: var(--red);}
+
+        .rec-body {
+            font-size: 14px;
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        /* Score Bar */
+        .score-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 28px;
+        }
+
+        .score-bar-bg {
+            background: var(--surface2);
+            border-radius: 6px;
+            height: 10px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 1s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        /* Risk factors */
+        .factors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .factor-tag {
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family:'Courier New', Courier, monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .factor-tag.positive {
+            background: #00c96e0d;
+            border: 1px solid var(--green-dim);
+            color: var(--green);
+        }
+
+        .factor-tag.neutral {
+            background: #f0c04014;
+            border: 1px solid #7a6000;
+            color: var(--gold);
+        }
+
+        .factor-tag.negative {
+            background: #ff4d6d0f;
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+        
+        /* Footer */
+        .Disclaimer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 40px;
+            line-height: 1.5;
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+            margin-top: 40px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <header>
+            <div class="logo-area">
+                <div class="logo-badge">NSE</div>
+                <div class="logo-text">
+                    <h1>Stock Decision Support System</h1>
+                    <p>Nairobi Securities Exchange · Student Edition</p>
+                </div>
+            </div>
+            <div class="live-badge">
+                <div class="live-dot"></div>
+                NSE MARKET HOURS
+            </div>
+        </header>
+
+        <!-- Live Ticker -->
+         <div class="ticker-wrap">
+            <div class="ticker"></div>
+         </div>
+
+         <!--Step 1: Your Profile-->
+         <div class="section-title">01 - Your Investment Profile</div>
+         <div class="input-grid">
+            <div class="input-group">
+                <label>Capital Available (KES)</label>
+                <input type="number" id="capital" placeholder="e.g. 100000">
+            </div>
+            <div class="input-group">
+                <label>Investment Horizon (Months)</label>
+                <select id="horizon">
+                    <option value="3">3 Months</option>
+                    <option value="6">6 Months</option>
+                    <option value="12">12 Months</option>
+                    <option value="24">24 Months</option>
+                    <option value="36">36 Months</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="risk">Risk Tolerance</label>
+                <select id="risk">
+                    <option value="low">Low Risk</option>
+                    <option value="medium">Medium Risk</option>
+                    <option value="high">High Risk</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Investment Goal</label>
+                <select id="goal">
+                    <option value="">Select...</option>
+                    <option value="income">Dividend income</option>
+                    <option value="growth">Capital growth</option>
+                    <option value="both">Both income & growth</option>
+                </select>
+            </div>
+         </div>
+
+            <!--Step 2: Stock Selection-->
+            <div class="section-title">02 - Stock Selection</div>
+            <div class="stock-picker" id="stock-picker"></div>
+
+            <!-- Step 3: Analysis-->
+             <button class="analyze-btn" onclick="analyze()">Analyze Selection</button>
+
+             <!-- Step 4: Results-->
+            <div id="results">
+                <div class="section-title">03 - Analysis Results</div>
+                <div class="results-grid" id="metricsGrid"></div>
+                <div id="recommendationBox"></div>
+
+                <div class="score-section">
+                    <div class="section-title">Score Breakdown</div>
+                    <div id="scoreBreakdown"></div>
+                </div>
+
+                <div class="score-section">
+                    <div class="section-title">Key Factors Detected</div>
+                    <div class="factors" id="factorTags"></div>
+                </div>
+            </div>
+
+            <div class="Disclaimer">
+               <p>⚠ This tool is for educational purposes only and does not constitute financial advice.<br>
+                Always consult a licensed investment advisor before making real investment decisions.<br>
+                Data shown is simulated for learning purposes · NSE Student DSS v1.0 <p>
+            </div> 
+    </div>
+
+    <script>
+        // --- NSE Stock Data (Simulated) ---
+    const stocks = [
+        { sym: 'EQTY', name: 'Equity Group Holdings', price: 77.25, chg: +0.98, pe: 8.0, div: 4.25, beta: 1.1, sector: 'Banking', mktcap: 'Large', momentum: 'Strong', debt:'low'},
+        { sym: 'KCB', name: 'Kenya Commercial Bank', price: 80.25, chg: +4.22, pe: 6.78, div: 4.00, beta: 1.2, sector: 'Banking', mktcap: 'Large', momentum: 'Moderate', debt:'medium'},
+        { sym: 'SCOM', name: 'Safaricom PLC', price: 32.40, chg: -2.14, pe: 14.90, div: 1.50, beta: 0.8, sector: 'Telecoms', mktcap: 'Large', momentum: 'Strong', debt:'low'},
+        { sym: 'EABL', name: 'East African Breweries', price: 259.50, chg: +1.67, pe: 15.0, div: 9.50, beta: 1.0, sector: 'Manufacturing', mktcap: 'Large', momentum: 'Weak', debt:'high'},
+        { sym : "KPLC", name : "Kenya Power & Lighting Co", price : 18.50, chg : +0.54, pe : 10, div : 1.10, beta : 0.8, sector : "Energy", mktcap : "Medium", momentum:"Strong" , debt:"medium"},
+        { sym: 'BAT', name: 'British American Tobacco', price: 567.00, chg: +5.39, pe: 20.0, div: 70.00, beta: 0.7, sector: 'Manufacturing', mktcap: 'Large', momentum: 'Moderate', debt:'low'},
+        { sym: 'KQ', name: 'Kenya Airways', price: 5.60, chg: -0.36, pe: 4.0, div: 0.0, beta: 1.8, sector: 'Transport', mktcap: 'Small', momentum: 'Weak', debt:'high'},
+        { sym: 'JUB', name: 'Jubilee Holdings', price: 374.60, chg: +0.34, pe: 12.0, div: 13.50, beta: 0.9, sector: 'Insurance', mktcap: 'Medium', momentum:'Moderate' , debt:'low'},
+        { sym : "DTK", name : "Diamond Trust Bank", price : 154.75, chg : -2.21, pe : 7.5, div : 7.00, beta : 1.2, sector : "Banking", mktcap : "Medium", momentum:"Strong" , debt:"medium"},
+        { sym : "NBV", name : "Nairobi Business Ventures", price : 1.48, chg : -3.90, pe : 5, div : 0.0, beta : 1.5, sector : "Investment", mktcap : "Small", momentum:"Weak" , debt:"high"},
+        { sym : "SBIC", name : "Stanbic Holdings", price : 256.50, chg : +0.49, pe : 9.0, div : 45.00, beta : 1.0, sector : "Banking", mktcap : "Large", momentum:"Strong" , debt:"low"},
+        { sym : "KNRE", name : "Kenya Reinsurance", price : 3.98, chg : -1.01, pe : 6.0, div : 0.15, beta : 1.3, sector : "Insurance", mktcap : "Medium", momentum:"Moderate" , debt:"medium"},
+    ]
+
+    let selectedStock = null;
+
+    // Render Ticker
+    function renderTicker() {
+        const items = [...stocks, ...stocks].map(s => {
+            const dir = s.chg >= 0 ? 'up' : 'down';
+            const arrow = s.chg >= 0 ? '▲' : '▼';
+            return `<span class="ticker-item">
+                <span class="ticker-name">${s.sym}</span>
+                <span class="ticker-price">KES ${s.price.toFixed(2)}</span>
+                <span class="ticker-change ${dir}">${arrow} ${Math.abs(s.chg)}%</span>
+            </span>`;
+        }).join('');
+        document.querySelector('.ticker').innerHTML = items;
+    }
+
+    //Render Stock Picker
+    function renderPicker() {
+        const container = document.getElementById('stock-picker')
+        container.innerHTML = stocks.map((s, t) => {
+            const dir = s.chg >=0 ? 'up' : 'down';
+            const arrow = s.chg >= 0 ? '▲' : '▼';
+            return `<div class="stock-chip" onclick="selectStock(${t})" id="chip-${t}">
+                <div class="sym">${s.sym}</div>
+                <div class="name">${s.name}</div>
+                <div class="price">KES ${s.price.toFixed(2)}</div>
+                <div class="chg ${dir}">${arrow} ${Math.abs(s.chg)}%</div>
+            </div>`;  
+        }).join('');
+    }
+
+    function selectStock(i) {
+        selectedStock = i;
+        document.querySelectorAll(`.stock-chip`).forEach((el, idx) => {
+            el.classList.toggle('selected', idx === i);
+        });
+    }
+
+    function analyze () {
+        const capital = parseFloat(document.getElementById('capital').value);
+        const horizon = document.getElementById('horizon').value;
+        const risk = document.getElementById('risk').value;
+        const goal = document.getElementById('goal').value;
+        
+        if (!capital || !horizon || !risk || !goal) {
+            alert('Please fill in all profile fields.');
+            return;
+        }
+        if (selectedStock === null) {
+            alert('Please select a stock to evaluate.');
+            return;
+        }
+
+        const s = stocks[selectedStock];
+
+        // -- Scoring Logic ---
+        let score = 0;
+        const factors = { positive: [], negative: [], neutral: [] };
+
+        //Shares Affordable
+        const shares = Math.floor(capital / s.price);
+        const investable = shares * s.price;
+
+        // 1. Dividend check
+        if (goal === 'income' || goal === `both`) {
+            if (s.div >= 5) { score += 20; factors.positive.push(`High Dividedn: ${s.div}%`); }
+            else if (s.div >= 2) { score += 10; factors.neutral.push(`Moderate Dividend: ${s.div}%`); }
+            else { score -= 10; factors.negative.push(`Low/No Dividend: ${s.div}%`); }
+        }   else {
+            score += 10; // growth investor, dividendd less critical
+            factors.neutral.push(`Dividend Yield: ${s.div}%`);
+        }
+
+        // 2. Valuation (P/E)
+        if (s.pe < 10) {score += 20; factors.positive.push(`Undervalued P/E: ${s.pe}x`); }
+        else if (s.pe <= 18) { score += 10; factors.neutral.push(`Fair P/E: ${s.pe}x`); }
+        else { score -= 5; factors.negative.push(`High P/E: ${s.pe}x`); }
+
+        // 3. Risk vs Beta
+        if (risk === 'low' && s.beta > 1.2) { score -= 20; factors.negative.push(`High Volatility (β=${s.beta}) vs low risk profile`); }
+        else if ( risk === 'low' && s.beta <= 0.8) { score += 15; factors.positive.push(`Low Volatility (β=${s.beta})`); }
+        else { score += 8; factors.neutral.push(`Moderate Volatility β=${s.beta}`); } 
+
+        // 4. Momentum
+        if (s.momentum === 'Strong') { score += 15; factors.positive.push('Strong Price Momentum'); }
+        else if (s.momentum === 'Weak') { score -= 5; factors.negative.push('Weak Momentum'); }
+        else { score += 10; factors.neutral.push('Moderate Momentum'); }
+
+        // 5. Debt
+        if (s.debt === 'low') { score += 15; factors.positive.push('Low Debt Levels'); }
+        else if (s.debt === 'medium') { score -= 5; factors.negative.push('Moderate Debt'); }
+        else { factors.neutral.push('High Debt - Elevated Risk'); }
+
+        // 6. Capital fit
+        if (shares === 0) { score -= 30; factors.negative.push('Capital too low to buy even 1 share'); }
+        else if (investable / capital >= 0.5) { factors.neutral.push('Partial Capital Utilization'); }
+        else { score += 10; factors.neutral.push('Capital Fully Deployed'); }
+
+        // 7. Horizon Fit
+        if (horizon === 'short' && s.momentum === 'strong') { score += 10; factors.positive.push('Short-term momentum aligned'); }
+        if (horizon === 'long' && s.mktcap === 'Large') { score += 10; factors.positive.push('Large-cap stability for long-term'); }
+        if (horizon === 'short' && s.beta > 1.3) { score -= 10; factors.negative.push('High Volatility, risky for short term horizon'); }
+
+        score = Math.max(0, Math.min(100, score)); // Clamp score between 0-100
+
+        // Decision
+        let decision, decClass, icon, advice;
+        if (score >= 65) {
+            decision = 'CONSIDER BUYING';  
+            decClass = 'buy';
+            icon = '✅';
+            advice = `This stock aligns well with your profile and has strong positive factors. 
+            ${s.name} (${s.sym}) scores well against your goals.
+            With KES ${capital.toLocaleString()} you could buy ${shares} shares at (KES ${investable.toLocaleString()} invested)
+            The Stock's fundamentals align with your ${risk} risk tolerance and ${horizon}-term horizon.
+            Monitor your entry pooint carefully and consider averaging in over time rather than investing all at once.`;
+        } else if (score >= 40) {
+            decision = 'HOLD/WATCH';  
+            decClass = 'hold';
+            icon = '👀';
+            advice = `This stock has a mix of positive and negative factors relative to your profile. 
+            ${s.name} (${s.sym}) has some attributes that align with your goals, but also some risks to consider.
+            With KES ${capital.toLocaleString()} you could buy ${shares} shares at (KES ${investable.toLocaleString()} invested)
+            If you are interested in this stock, consider doing more research on the specific factors highlighted and monitor it closely if you choose to invest.
+            If you do invest, limit your exposure to no more than 20% of your available capital (KES ${(capital * 0.2).toLocaleString()}).`;
+        } else {
+            decision = 'AVOID / RISKY';  
+            decClass = 'avoid';
+            icon = '⚠️';
+            advice = `${s.name} (${s.sym}) has several factors that do not align well with your investment profile and goals.
+            With KES ${capital.toLocaleString()} you could buy ${shares} shares at (KES ${investable.toLocaleString()})
+            The combination of your goals, risk tolerance, and this stocks characteristics raises several red flags. 
+            Consider looking at other NSE-listed stocks that better match your ${risk} risk profile and ${horizon}-term investment horizon.`;
+        }
+        
+        // Sub scores for breakdown
+        const subScores = [
+            { label: 'Valuation', pct: s.pe <10 ? 90 : s.pe < 18 ? 60 : 30, color: '#00c96e' },
+            { label: 'Dividend', pct: s.div >= 5 ? 85 : s.div >= 2 ? 55 : 25, color: '#00ffaa' },
+            { label: 'Risk Match', pct: (risk === 'low' && s.beta <= 1) || (risk === 'high' && s.beta >= 1.2) ? 85 : 50, color: '#f0c040' },
+            { label: 'Momentum', pct: s.momentum === 'Strong' ? 90 : s.momentum === 'Moderate' ? 55 : 25, color: '#00c96e' },
+            { label: 'Debt Levels', pct: s.debt === 'low' ? 90 : s.debt === 'medium' ? 60 : 25, color: '#f0c040' },
+        ];
+
+        // Render
+        document.getElementById('metricsGrid').innerHTML = `
+            <div class="metric-card fade-in">
+                <div class="metric-label">Overall Score</div>
+                <div class="metric-value ${score > 65 ? '' : score >= 40 ? 'warn' : 'danger'}">${score}/100</div>
+                <div class="metric-sub">Composite recommendation score </div>
+            </div>
+                <div class="metric-card fade-in">
+                    <div class="metric-label">Shares Affordable</div>
+                    <div class="metric-value">${shares.toLocaleString()}</div>
+                    <div class="metric-sub">At KES ${s.price.toFixed(2)} per share</div>
+                </div>
+                <div class="metric-card fade-in">
+                    <div class="metric-label">Capital Deployed</div>
+                    <div class="metric-value">KES ${(investable/1000).toFixed(1)}K</div>
+                    <div class="metric-sub">${capital > 0 ? ((investable/capital)*100).toFixed(0) : 0}% of available capital</div>
+                </div>
+                <div class="metric-card fade-in ${s.div < 2 ? 'danger' : ''}">
+                    <div class="metric-label">Annual Dividend Est.</div>
+                    <div class="metric-value ${s.div < 2 ? 'warn' : ''}">KES ${(shares * s.price * s.div / 100).toFixed(0)}</div>
+                    <div class="metric-sub">Based on ${s.div}% dividend yield on ${shares} shares</div>
+                </div>
+                <div class="metric-card fade-in ${s.beta > 1.3 ? 'danger' : s.beta > 1 ? 'warn' : ''}">
+                    <div class="metric-label">Beta (Volatility)</div>
+                    <div class="metric-value ${s.beta > 1.3 ? 'danger' : s.beta > 1 ? 'warn' : ''}">${s.beta}</div>
+                    <div class="metric-sub">${s.beta <1 ? 'Less volatile than market' : 'More volatile than '}</div>
+                </div>
+        `;
+
+        document.getElementById('recommendationBox').innerHTML = `
+            <div class="recommendation ${decClass} fade-in">
+                <div class="rec-header">
+                    <div class="rec-icon">${icon}</div>
+                    <div>
+                        <div class="rec-title">${decision}</div>
+                        <div style="font-size: 12px; color: var(--text);font-family: 'Space Mono, monospace';
+                        letter-spacing: 1px">${s.sym} - ${s.sector} - ${s.mktcap}-Cap</div>
+                    </div>
+                </div>
+                <div class="rec-body">${advice}</div>
+            </div>
+        `;
+
+        document.getElementById('scoreBreakdown').innerHTML = subScores.map(sub => `
+            <div>
+                <div class="score-label"><span>${sub.label}</span>&nbsp;<span>${sub.pct}%</span></div>
+                <div class="score-bar-bg">
+                    <div class="score-bar-fill" style="width: 0%; background: ${sub.color}" data-w="${sub.pct}"></div>
+                </div>
+            </div>
+            `).join('');
+
+        document.getElementById('factorTags').innerHTML = [
+            ...factors.positive.map(f => `<span class="factor-tag positive">+ ${f}</span>`),
+            ...factors.neutral.map(f => `<span class="factor-tag neutral">~ ${f}</span>`),
+            ...factors.negative.map(f => `<span class="factor-tag negative">- ${f}</span>`),
+        ].join('');
+
+        const results = document.getElementById('results');
+        results.style.display = 'block';
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Animate Bars
+        setTimeout(() => {
+            document.querySelectorAll('.score-bar-fill').forEach(el => {
+                el.style.width = el.dataset.w + '%';
+            });
+        }, 100);
+    }
+
+renderTicker();
+renderPicker();
+</script>
+</body>
+</html>
