@@ -1,18 +1,22 @@
+import sqlite3
 from flask import Flask, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-stocks = [
-    {"sym": "KCB", "name": "KCB Group", "price": 28.50, "chg": 1.2, "pe": 8.5, "div": 6.2, "beta": 1.1, "sector": "Banking", "mktcap": "Large", "momentum": "strong", "debt": "medium"},
-    {"sym": "EQTY", "name": "Equity Group", "price": 42.00, "chg": 0.8, "pe": 9.2, "div": 4.5, "beta": 1.0, "sector": "Banking", "mktcap": "Large", "momentum": "strong", "debt": "low"},
-    {"sym": "SCOM", "name": "Safaricom", "price": 18.75, "chg": -0.5, "pe": 14.3, "div": 7.1, "beta": 0.8, "sector": "Telecom", "mktcap": "Large", "momentum": "neutral", "debt": "low"},
-]
+def get_db_connection():
+    conn = sqlite3.connect('stocks.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 @app.route('/api/stocks', methods=['GET'])
 def get_stocks():
-    return jsonify(stocks)
+    conn = get_db_connection()
+    stocks = conn.execute('SELECT * FROM stocks').fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in stocks])
 
 if __name__ == '__main__':
     app.run(debug=True)
+
