@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSE DSS — Admin Panel</title>
+    <style>
+        :root {
+            --bg: #010302;
+            --surface: #0d1f18;
+            --green: #00c96e;
+            --gold: #f0c040;
+            --red: #ff4d6d;
+            --text: #e0f0e8;
+            --border: #1a3a2a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            color: var(--green);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #aaa;
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #0a1a12;
+            color: var(--gold);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover td { background: #0f2a1e; }
+
+        input.edit-field {
+            background: #0a1a12;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 4px 8px;
+            border-radius: 6px;
+            width: 100%;
+            font-size: 0.85rem;
+        }
+
+        input.edit-field:focus {
+            outline: none;
+            border-color: var(--green);
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn-edit { background: var(--gold); color: #000; }
+        .btn-save { background: var(--green); color: #000; }
+        .btn-cancel { background: #333; color: var(--text); margin-left: 4px; }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--green);
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: var(--green);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <a href="nse.html" class="back-link">← Back to DSS</a>
+    <h1>Admin Panel</h1>
+    <p class="subtitle">View and edit NSE stock data stored in the database.</p>
+
+    <table id="stockTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Chg %</th>
+                <th>P/E</th>
+                <th>Div %</th>
+                <th>Beta</th>
+                <th>Sector</th>
+                <th>Mkt Cap</th>
+                <th>Momentum</th>
+                <th>Debt</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="stockBody"></tbody>
+    </table>
+
+    <div class="toast" id="toast">Changes saved successfully!</div>
+
+    <script>
+        let stocksData = [];
+
+        async function loadStocks() {
+            const res = await fetch('http://127.0.0.1:5000/api/stocks');
+            stocksData = await res.json();
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('stockBody');
+            tbody.innerHTML = stocksData.map(s => `
+                <tr id="row-${s.id}">
+                    <td>${s.id}</td>
+                    <td>${s.sym}</td>
+                    <td>${s.name}</td>
+                    <td>${s.price}</td>
+                    <td>${s.chg}</td>
+                    <td>${s.pe}</td>
+                    <td>${s.div}</td>
+                    <td>${s.beta}</td>
+                    <td>${s.sector}</td>
+                    <td>${s.mktcap}</td>
+                    <td>${s.momentum}</td>
+                    <td>${s.debt}</td>
+                    <td><button class="btn btn-edit" onclick="editRow(${s.id})">Edit</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function editRow(id) {
+            const s = stocksData.find(x => x.id === id);
+            const row = document.getElementById(`row-${id}`);
+            row.innerHTML = `
+                <td>${s.id}</td>
+                <td><input class="edit-field" id="sym-${id}" value="${s.sym}"></td>
+                <td><input class="edit-field" id="name-${id}" value="${s.name}"></td>
+                <td><input class="edit-field" id="price-${id}" value="${s.price}"></td>
+                <td><input class="edit-field" id="chg-${id}" value="${s.chg}"></td>
+                <td><input class="edit-field" id="pe-${id}" value="${s.pe}"></td>
+                <td><input class="edit-field" id="div-${id}" value="${s.div}"></td>
+                <td><input class="edit-field" id="beta-${id}" value="${s.beta}"></td>
+                <td><input class="edit-field" id="sector-${id}" value="${s.sector}"></td>
+                <td><input class="edit-field" id="mktcap-${id}" value="${s.mktcap}"></td>
+                <td><input class="edit-field" id="momentum-${id}" value="${s.momentum}"></td>
+                <td><input class="edit-field" id="debt-${id}" value="${s.debt}"></td>
+                <td>
+                    <button class="btn btn-save" onclick="saveRow(${id})">Save</button>
+                    <button class="btn btn-cancel" onclick="renderTable()">Cancel</button>
+                </td>
+            `;
+        }
+
+        async function saveRow(id) {
+            const updated = {
+                sym: document.getElementById(`sym-${id}`).value,
+                name: document.getElementById(`name-${id}`).value,
+                price: parseFloat(document.getElementById(`price-${id}`).value),
+                chg: parseFloat(document.getElementById(`chg-${id}`).value),
+                pe: parseFloat(document.getElementById(`pe-${id}`).value),
+                div: parseFloat(document.getElementById(`div-${id}`).value),
+                beta: parseFloat(document.getElementById(`beta-${id}`).value),
+                sector: document.getElementById(`sector-${id}`).value,
+                mktcap: document.getElementById(`mktcap-${id}`).value,
+                momentum: document.getElementById(`momentum-${id}`).value,
+                debt: document.getElementById(`debt-${id}`).value,
+            };
+
+            await fetch(`http://127.0.0.1:5000/api/stocks/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updated)
+            });
+
+            await loadStocks();
+            showToast();
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+
+        loadStocks();
+    </script>
+</body>
+</html>
