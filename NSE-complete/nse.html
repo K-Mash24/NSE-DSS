@@ -568,23 +568,20 @@
     </div>
 
     <script>
-        // --- NSE Stock Data (Simulated) ---
-    const stocks = [
-        { sym: 'EQTY', name: 'Equity Group Holdings', price: 77.25, chg: +0.98, pe: 8.0, div: 4.25, beta: 1.1, sector: 'Banking', mktcap: 'Large', momentum: 'Strong', debt:'low'},
-        { sym: 'KCB', name: 'Kenya Commercial Bank', price: 80.25, chg: +4.22, pe: 6.78, div: 4.00, beta: 1.2, sector: 'Banking', mktcap: 'Large', momentum: 'Moderate', debt:'medium'},
-        { sym: 'SCOM', name: 'Safaricom PLC', price: 32.40, chg: -2.14, pe: 14.90, div: 1.50, beta: 0.8, sector: 'Telecoms', mktcap: 'Large', momentum: 'Strong', debt:'low'},
-        { sym: 'EABL', name: 'East African Breweries', price: 259.50, chg: +1.67, pe: 15.0, div: 9.50, beta: 1.0, sector: 'Manufacturing', mktcap: 'Large', momentum: 'Weak', debt:'high'},
-        { sym : "KPLC", name : "Kenya Power & Lighting Co", price : 18.50, chg : +0.54, pe : 10, div : 1.10, beta : 0.8, sector : "Energy", mktcap : "Medium", momentum:"Strong" , debt:"medium"},
-        { sym: 'BAT', name: 'British American Tobacco', price: 567.00, chg: +5.39, pe: 20.0, div: 70.00, beta: 0.7, sector: 'Manufacturing', mktcap: 'Large', momentum: 'Moderate', debt:'low'},
-        { sym: 'KQ', name: 'Kenya Airways', price: 5.60, chg: -0.36, pe: 4.0, div: 0.0, beta: 1.8, sector: 'Transport', mktcap: 'Small', momentum: 'Weak', debt:'high'},
-        { sym: 'JUB', name: 'Jubilee Holdings', price: 374.60, chg: +0.34, pe: 12.0, div: 13.50, beta: 0.9, sector: 'Insurance', mktcap: 'Medium', momentum:'Moderate' , debt:'low'},
-        { sym : "DTK", name : "Diamond Trust Bank", price : 154.75, chg : -2.21, pe : 7.5, div : 7.00, beta : 1.2, sector : "Banking", mktcap : "Medium", momentum:"Strong" , debt:"medium"},
-        { sym : "NBV", name : "Nairobi Business Ventures", price : 1.48, chg : -3.90, pe : 5, div : 0.0, beta : 1.5, sector : "Investment", mktcap : "Small", momentum:"Weak" , debt:"high"},
-        { sym : "SBIC", name : "Stanbic Holdings", price : 256.50, chg : +0.49, pe : 9.0, div : 45.00, beta : 1.0, sector : "Banking", mktcap : "Large", momentum:"Strong" , debt:"low"},
-        { sym : "KNRE", name : "Kenya Reinsurance", price : 3.98, chg : -1.01, pe : 6.0, div : 0.15, beta : 1.3, sector : "Insurance", mktcap : "Medium", momentum:"Moderate" , debt:"medium"},
-    ]
+        // --- NSE Stock Data (from Flask API) ---
+        let stocks = [];
+        let selectedStock = null;
 
-    let selectedStock = null;
+        async function loadStocks() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/stocks');
+                stocks = await response.json();
+                renderTicker();
+                renderPicker();
+            } catch (error) {
+                console.error('Failed to load stocks from API:', error);
+            }
+        }
 
     // Render Ticker
     function renderTicker() {
@@ -798,8 +795,7 @@
         }, 100);
     }
 
-renderTicker();
-renderPicker();
+loadStocks();
 </script>
 </body>
 </html>
