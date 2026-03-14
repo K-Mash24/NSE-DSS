@@ -168,7 +168,7 @@ Stock data can be updated in two ways:
 
 After editing stock data, retrain the model to keep ML predictions accurate:
 ```bash
-python train_model.py
+python train-model.py
 ```
 
 ---
@@ -201,4 +201,4 @@ This tool is for educational purposes only and does not constitute financial adv
 
 Built by [K-Mash24](https://github.com/K-Mash24) as a student Decision Support System project.
 
-> For the browser-only version with no backend or dependencies, see the [NSE-simple](../NSE-simple) folder. It is a functional prototype with limited capability mostly relying on Javascript
+> For the browser-only version with no backend or dependencies, see the [NSE-simple](https://github.com/K-Mash24/NSE-DSS/tree/master/NSE-simple) folder. It is a functional prototype with limited capability mostly relying on Javascript
